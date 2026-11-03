@@ -1,0 +1,14 @@
+TokenMiner · motor de Pearl: atribuciones de terceros
+
+Este programa incorpora copias locales del código oficial de Pearl Research Labs
+(pearl-research-labs/pearl, commit 0a17bb345a838147a4c14fc618de1839cbc16c1e), en vendor/:
+
+- vendor/zk-pow y vendor/pearl-blake3: licencia ISC (licenses/pearl-ISC.txt).
+- vendor/plonky2 (plonky2, field, maybe_rayon, starky y util): MIT o Apache-2.0
+  (licenses/plonky2-MIT.txt y licenses/plonky2-Apache-2.0.txt).
+
+Las copias no incluyen documentación, pruebas, datos de prueba ni archivos de herramientas del repositorio original.
+En plonky2 y starky se retira de Cargo.toml la línea `readme`, porque esos archivos no se copian.
+No se modifica el código de cálculo ni el de verificación.
+
+Proyecto independiente: no está afiliado a Pearl Research Labs.

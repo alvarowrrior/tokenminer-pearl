@@ -1,0 +1,22 @@
+[package]
+name = "pearl-verifier"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+description = "Verificador de shares de Pearl sobre el codigo oficial, para contrastar el motor"
+publish = false
+
+# Usa las copias del codigo oficial de Pearl que lleva este repositorio en vendor/, sin modificarlas.
+[dependencies]
+zk-pow = { path = "../../vendor/zk-pow" }
+pearl-blake3 = { path = "../../vendor/pearl-blake3", features = ["serde"] }
+anyhow = "1"
+base64 = "0.21"
+bincode = "1.3.3"
+hex = "0.4"
+serde_json = "1"
+blake3 = "1.8"
+primitive-types = "0.12.1"
+
+[profile.release]
+opt-level = 3

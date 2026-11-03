@@ -1,0 +1,4 @@
+* text=auto
+*.ptx -text
+*.cubin binary
+*.bin binary
