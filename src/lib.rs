@@ -19,6 +19,17 @@ pub const BN: u32 = 192;
 pub const WM: u32 = 96;
 pub const WN: u32 = 48;
 pub const BK: u32 = 128;
+
+/// Multiplicaciones-acumulaciones de enteros de 8 bits que un multiprocesador de una GeForce RTX (series 20 a 50) hace por
+/// ciclo con `mma.sync`. Medido en una RTX 4060 portátil: un programa que sólo multiplica llega al 96 % de esto.
+pub const MAC_POR_CICLO_Y_SM: f64 = 1024.0;
+
+/// Techo teórico del producto, en MAC/s, de una GPU con `sm` multiprocesadores al reloj `reloj_mhz`. En Pearl los TH/s del
+/// pool son estos mismos MAC/s: la cota se multiplica por h·w·k, que es lo que cuesta cada intento.
+pub fn techo_macs(sm: u32, reloj_mhz: f64) -> f64 {
+    sm as f64 * MAC_POR_CICLO_Y_SM * reloj_mhz * 1e6
+}
+
 /// Cabecera de bloque sin nonce.
 pub const HEADER_BYTES: usize = 76;
 /// La única versión de certificado que se mina.
@@ -74,6 +85,20 @@ pub fn semilla_a_de(semilla_a0: &[u8; 32], r: u32) -> [u8; 32] {
 #[cfg(test)]
 mod pruebas {
     use super::*;
+
+    #[test]
+    fn techo_teorico_de_una_4060_portatil() {
+        // 24 multiprocesadores a 2460 MHz: unos 60,4 TMAC/s.
+        let t = techo_macs(24, 2460.0);
+        assert!((t - 60.4e12).abs() < 0.1e12, "{t}");
+        assert_eq!(techo_macs(0, 2460.0), 0.0);
+    }
+
+    #[test]
+    fn el_factor_de_la_cota_es_h_por_w_por_k() {
+        // Por eso los TH/s del pool son los MAC/s del producto: cada intento cuesta h·w·k multiplicaciones.
+        assert_eq!(FACTOR, 12 * 12 * K);
+    }
 
     #[test]
     fn config_de_52_bytes() {

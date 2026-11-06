@@ -156,6 +156,15 @@ impl Cuda {
         Ok(v as u32)
     }
 
+    /// Multiprocesadores (SM) de la GPU (CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT = 16).
+    pub fn multiprocesadores(&self) -> Resultado<u32> {
+        let mut v = 0;
+        chk("cuDeviceGetAttribute", unsafe {
+            (self.api.device_attr)(&mut v, 16, self.dev)
+        })?;
+        Ok(v as u32)
+    }
+
     /// Carga un cubin, o PTX que compila el driver. Se copia a un búfer alineado a 8, porque `include_bytes!` no
     /// garantiza alineación, y acabado en cero, que es lo que pide el PTX.
     pub fn cargar(&mut self, imagen: &[u8]) -> Resultado<Ptr> {

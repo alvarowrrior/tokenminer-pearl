@@ -38,6 +38,8 @@ pub enum Aviso {
         mu: u32,
         nu: u32,
         variante: Variante,
+        /// Multiprocesadores de esta GPU.
+        sm: u32,
     },
     Share {
         revision: u64,
@@ -193,6 +195,7 @@ pub fn trabajar(
         mu: motor.mu,
         nu: motor.nu,
         variante: motor.variante,
+        sm: motor.sm,
     });
     let (tx, rx) = mpsc::channel::<Pieza>();
     let hilo = {

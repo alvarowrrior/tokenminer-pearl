@@ -84,6 +84,8 @@ pub struct Motor {
     cu: Cuda,
     k: Kernels,
     pub variante: Variante,
+    /// Multiprocesadores de la GPU, para el techo teórico (`techo_macs`).
+    pub sm: u32,
     pub m: u32,
     pub n: u32,
     pub mu: u32,
@@ -215,10 +217,12 @@ impl Motor {
         };
         let s = cu.stream()?;
         let ev = [cu.evento()?, cu.evento()?];
+        let sm = cu.multiprocesadores()?;
         Ok(Motor {
             cu,
             k,
             variante,
+            sm,
             m,
             n,
             mu: mu32,

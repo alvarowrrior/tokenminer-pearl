@@ -302,10 +302,20 @@ fn velocidad_del_nucleo() {
     motor.vaciar().unwrap();
     let s = inicio.elapsed().as_secs_f64();
     let macs = motor.mu as f64 * motor.nu as f64 * K as f64 * vueltas as f64;
+    // `PEARL_RELOJ_MHZ`: reloj durante la tanda (de `nvidia-smi`), para ver el porcentaje del techo teórico.
+    let techo = std::env::var("PEARL_RELOJ_MHZ")
+        .ok()
+        .map(|r| tokenminer_pearl::techo_macs(motor.sm, r.parse().unwrap()) / 1e12);
     println!(
-        "{:?}: {:.1} vueltas/s, {:.1} TMAC/s",
+        "{:?}: {} SM, {:.1} vueltas/s, {:.1} TMAC/s{}",
         motor.variante,
+        motor.sm,
         vueltas as f64 / s,
-        macs / s / 1e12
+        macs / s / 1e12,
+        techo.map_or(String::new(), |t| format!(
+            ", {:.0} % de {:.1} TMAC/s",
+            macs / s / 1e12 / t * 100.0,
+            t
+        ))
     );
 }
