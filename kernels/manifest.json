@@ -4,7 +4,7 @@
   "pl02_core.sm_120.cubin": {
    "source": "pl02_core.cu",
    "arch": "sm_120",
-   "source_sha256": "47f340a24745e3b3ec8761b17bcd037945a9c09a869dc17e6e52d4758829812e",
+   "source_sha256": "cc5dae4a58755b8478e19c12103aafce24eb596739f9350a79c0ef6a8eed9e14",
    "options": [
     "--gpu-architecture=sm_120",
     "--std=c++17",
@@ -40,7 +40,7 @@
   "pl02_core_cp.compute_80.ptx": {
    "source": "pl02_core.cu",
    "arch": "compute_80",
-   "source_sha256": "47f340a24745e3b3ec8761b17bcd037945a9c09a869dc17e6e52d4758829812e",
+   "source_sha256": "cc5dae4a58755b8478e19c12103aafce24eb596739f9350a79c0ef6a8eed9e14",
    "options": [
     "--gpu-architecture=compute_80",
     "--std=c++17",
@@ -53,10 +53,11 @@
     "-DPL_WM=96",
     "-DPL_WN=48",
     "-DPL_MMA_U=1",
-    "-DPL_TMA=0"
+    "-DPL_TMA=0",
+    "-DPL_FOLD_ROWS=1"
    ],
-   "image_sha256": "89b17b93c77da9f238df1b92fdea99cab81a57c24f52b4ceb90b7bf5972c6964",
-   "bytes": 97531
+   "image_sha256": "1700000ef6fd1eb87bee498f17c45ecc05052b64a3958c8df6564dcd971fb489",
+   "bytes": 95281
   },
   "pl02_round.compute_80.ptx": {
    "source": "pl02_round.cu",

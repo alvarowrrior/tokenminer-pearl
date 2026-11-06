@@ -31,6 +31,9 @@
 #ifndef PL_FOLD_TREE
 #define PL_FOLD_TREE 1
 #endif
+#ifndef PL_FOLD_ROWS
+#define PL_FOLD_ROWS 0   // 1: pliegue por filas en registros (sin vector local); sustituye a PL_FOLD_TREE
+#endif
 #ifndef PL_TMA
 #define PL_TMA 0   // 1: carga con cp.async.bulk.tensor (TMA) y mbarrier
 #endif
@@ -516,7 +519,23 @@ pl02_mine(const signed char* __restrict__ a, const signed char* __restrict__ bt,
             // Fin de tramo de 128: XOR de las 128 sumas acumuladas y actualización del jackpot.
             // En árbol, no en cadena: escrito como `x ^= …` el compilador encadena ~64 LOP3
             // dependientes (≈256 ciclos de latencia en serie) justo entre dos grupos de mma.
-#if PL_FOLD_TREE
+#if PL_FOLD_ROWS
+            // Sumas por fila de mma y luego entre filas, todo en registros con índices constantes. El árbol de abajo
+            // recorre un vector p[] con un bucle que el compilador no desenrolla: lo deja en memoria local y cada
+            // pliegue paga decenas de accesos que compiten con ldmatrix, hasta partir en dos la velocidad.
+            u32 r[MT];
+#pragma unroll
+            for (int i = 0; i < MT; ++i) {
+                u32 y = 0;
+#pragma unroll
+                for (int j = 0; j < NTL; ++j)
+                    y ^= (u32)acc[i][j][0] ^ (u32)acc[i][j][1] ^ (u32)acc[i][j][2] ^ (u32)acc[i][j][3];
+                r[i] = y;
+            }
+            u32 x = 0;
+#pragma unroll
+            for (int i = 0; i < MT; ++i) x ^= r[i];
+#elif PL_FOLD_TREE
             u32 p[MT * NTL];
 #pragma unroll
             for (int i = 0; i < MT; ++i)

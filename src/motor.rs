@@ -9,9 +9,10 @@
 //! m y n declaradas).
 //!
 //! Hay dos variantes de los kernels. `Tma`, la rápida, es cubin de sm_120. `CpAsync` es PTX de sm_80 que compila
-//! el driver, para las demás RTX: sin TMA, con cp.async y A' y B' por filas. Nunca ha corrido fuera de sm_120,
-//! donde ese PTX va mucho más lento (28,7 TMAC/s), y su velocidad en otra GPU es desconocida. Las dos pasan la
-//! autocomprobación antes de minar.
+//! el driver, para las demás RTX: sin TMA, con cp.async y A' y B' por filas. En una RTX 4060 portátil da unos 46 TMAC/s
+//! (el techo de `mma.sync` medido en esa tarjeta es de unos 54); en sm_120 va mucho más lento que `Tma` (28,7 TMAC/s).
+//! Las dos pasan la autocomprobación antes de minar. El pliegue XOR de cada tramo se compila con `PL_FOLD_ROWS=1`: con el
+//! árbol sobre un vector, el compilador lo deja en memoria local y el pliegue tarda tanto como el producto.
 use crate::cuda::{Arg, Cuda, Ptr, TmaMap};
 use crate::{BK, BM, BN, K, RANK, WM, WN};
 

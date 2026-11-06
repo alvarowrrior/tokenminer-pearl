@@ -261,3 +261,51 @@ fn memoria_escasa_elige_n_pequena() {
     motor.lote_de_vueltas(4).unwrap();
     assert!(motor.vaciar().unwrap().is_empty());
 }
+
+/// Velocidad del núcleo: vueltas por segundo y TMAC/s del producto (en Pearl, TH/s del pool son estos mismos TMAC/s,
+/// porque la cota se multiplica por h·w·k). Con la GPU libre y sin otros programas encima. Variables:
+/// - `PEARL_SEGUNDOS`: duración de la tanda (8 por defecto).
+/// - `PEARL_N`: columnas de B (0 = según la memoria libre).
+/// - `PEARL_VARIANTE`: `cp` para `CpAsync`, `tma` para `Tma`; sin ella, la de la arquitectura.
+#[test]
+#[ignore = "necesita la GPU"]
+fn velocidad_del_nucleo() {
+    use std::time::{Duration, Instant};
+    let segundos: u64 = std::env::var("PEARL_SEGUNDOS")
+        .map(|s| s.parse().unwrap())
+        .unwrap_or(8);
+    let n: u32 = std::env::var("PEARL_N")
+        .map(|s| s.parse().unwrap())
+        .unwrap_or(0);
+    let variante = match std::env::var("PEARL_VARIANTE").as_deref() {
+        Ok("cp") => Some(Variante::CpAsync),
+        Ok("tma") => Some(Variante::Tma),
+        _ => None,
+    };
+    let mut motor = Motor::con_variante(2048, n, 16, variante).unwrap();
+    motor
+        .preparar_trabajo(&Trabajo {
+            job_key: job_key(&CABECERA),
+            semilla_b: SEMILLA_B,
+            semilla_a0: SEMILLA_A0,
+            cota: [0; 32],
+        })
+        .unwrap();
+    // Calentamiento: la primera tanda carga módulos y reparte memoria.
+    motor.lote_de_vueltas(2).unwrap();
+    motor.vaciar().unwrap();
+    let (inicio, mut vueltas) = (Instant::now(), 0u64);
+    while inicio.elapsed() < Duration::from_secs(segundos) {
+        motor.lote_de_vueltas(8).unwrap();
+        vueltas += 8;
+    }
+    motor.vaciar().unwrap();
+    let s = inicio.elapsed().as_secs_f64();
+    let macs = motor.mu as f64 * motor.nu as f64 * K as f64 * vueltas as f64;
+    println!(
+        "{:?}: {:.1} vueltas/s, {:.1} TMAC/s",
+        motor.variante,
+        vueltas as f64 / s,
+        macs / s / 1e12
+    );
+}
