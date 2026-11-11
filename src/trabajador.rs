@@ -14,6 +14,25 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 /// Vueltas por lote con límite: lotes cortos para que un juego no espere mucho a la GPU.
 const LOTE_LIMITADO: u32 = 1;
+/// Trabajos seguidos con otra versión de certificado que se dejan pasar antes de avisar: uno suelto puede ser un
+/// cambio que el pool deshace; tres seguidos son la red, que ha cambiado.
+pub const OTRA_VERSION_SEGUIDA: u32 = 3;
+
+/// Cuenta los trabajos seguidos que llegan con una versión de certificado que este motor no mina. Devuelve el aviso
+/// la vez que la cuenta llega a `OTRA_VERSION_SEGUIDA`, y sólo esa: sin él, el motor se quedaba parado sin decir nada
+/// y quien lo conduce seguía creyendo que minaba.
+pub fn otra_version(seguidos: &mut u32, version: u64) -> Option<String> {
+    if version == CERT_VERSION {
+        *seguidos = 0;
+        return None;
+    }
+    *seguidos = seguidos.saturating_add(1);
+    (*seguidos == OTRA_VERSION_SEGUIDA).then(|| {
+        format!(
+            "Pearl ha cambiado de versión de certificado (ahora la {version}; este programa mina la {CERT_VERSION}).              Hace falta actualizar TokenMiner para seguir minando Pearl."
+        )
+    })
+}
 
 #[derive(Clone)]
 pub struct Encargo {
@@ -204,6 +223,7 @@ pub fn trabajar(
     };
     let mut actual: Option<Encargo> = None;
     let mut semilla_a0 = [0u8; 32];
+    let mut de_otra_version = 0;
     'minar: loop {
         // Con trabajo se mira sin esperar; sin él, se duerme hasta la próxima orden.
         let mut ultima = None;
@@ -232,8 +252,12 @@ pub fn trabajar(
             Some(Orden::Trabajo(e)) => {
                 motor.vaciar()?; // los candidatos del trabajo anterior no se envían
                 actual = None;
+                let aviso = otra_version(&mut de_otra_version, e.cert_version);
                 if e.cert_version != CERT_VERSION {
                     c.skipped_cert.fetch_add(1, Ordering::Relaxed);
+                    if let Some(aviso) = aviso {
+                        let _ = avisos.send(Aviso::Error(aviso));
+                    }
                     continue;
                 }
                 let Some(cota) = cota_penalizada(&e.objetivo) else {
@@ -292,4 +316,25 @@ pub fn trabajar(
     drop(tx);
     let _ = hilo.join();
     Ok(())
+}
+
+#[cfg(test)]
+mod pruebas {
+    use super::*;
+
+    #[test]
+    fn avisa_una_vez_cuando_la_red_cambia_de_certificado() {
+        let mut seguidos = 0;
+        // Uno suelto no avisa, y un trabajo bueno pone la cuenta a cero.
+        assert_eq!(otra_version(&mut seguidos, CERT_VERSION + 1), None);
+        assert_eq!(otra_version(&mut seguidos, CERT_VERSION), None);
+        assert_eq!(seguidos, 0);
+        for _ in 1..OTRA_VERSION_SEGUIDA {
+            assert_eq!(otra_version(&mut seguidos, CERT_VERSION + 1), None);
+        }
+        let aviso = otra_version(&mut seguidos, CERT_VERSION + 1).unwrap();
+        assert!(aviso.contains("certificado") && aviso.contains(&format!("{}", CERT_VERSION + 1)), "{aviso}");
+        // Ya avisado: los siguientes no repiten el aviso.
+        assert_eq!(otra_version(&mut seguidos, CERT_VERSION + 1), None);
+    }
 }
